@@ -3,14 +3,14 @@
     <b-table
       ref="table"
       id="table-id"
-      :items="items"
-      :fields="fields"
-      :sort-by.sync="sortBy"
-      :sort-desc.sync="sortDesc"
+      :items="state.items"
+      :fields="state.fields"
+      :sort-by.sync="state.sortBy"
+      :sort-desc.sync="state.sortDesc"
       :empty-text="
-        isLoading
+        state.isLoading
           ? 'Loading...'
-          : isError
+          : state.isError
           ? 'There is error from backend!'
           : 'There are no records to show'
       "
@@ -30,12 +30,12 @@
         </div>
       </template>
     </b-table>
-    <b-overlay :show="isLoading" no-wrap opacity="0.5"></b-overlay>
+    <b-overlay :show="state.isLoading" no-wrap opacity="0.5"></b-overlay>
   </div>
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent, onMounted, reactive, ref } from 'vue';
 import { getBlocs, getBlocsCount } from '@/api';
 import { proposerFormatter, throttle, timeFormatter } from '@/utils';
 
@@ -62,13 +62,12 @@ interface BlocsTableData {
   totalItems: number;
   isLoading: boolean;
   isError: boolean;
-  tableScrollBody: null | Element;
 }
 
-export default Vue.extend({
+export default defineComponent({
   name: 'BlocsTable',
-  data(): BlocsTableData {
-    return {
+  setup() {
+    const state = reactive<BlocsTableData>({
       sortBy: 'level',
       sortDesc: false,
       currentPage: 0,
@@ -76,66 +75,75 @@ export default Vue.extend({
       items: [],
       totalItems: 0,
       isLoading: true,
-      isError: false,
-      tableScrollBody: null
-    };
-  },
-  async created() {
-    this.totalItems = await getBlocsCount();
-    this.items = await this.getData();
-  },
-  mounted() {
-    this.tableScrollBody = (this.$refs.table as Vue).$el;
-    this.tableScrollBody.addEventListener(
-      'scroll',
-      throttle(this.onScroll, 250)
-    );
-  },
-  methods: {
-    async getData() {
+      isError: false
+    });
+    const table = ref();
+
+    onMounted(async () => {
+      const [totalItems, items] = await Promise.all([
+        getBlocsCount(),
+        getData()
+      ]);
+      state.totalItems = totalItems;
+      state.items = items;
+      if (table) {
+        table.value?.$el.addEventListener('scroll', throttle(onScroll, 250));
+      }
+    });
+
+    async function getData() {
       try {
-        this.isLoading = true;
-        this.isError = false;
+        state.isLoading = true;
+        state.isError = false;
         const select = fields.map((field) => field.key);
         const newItems = await getBlocs(
           select,
-          this.currentPage,
-          this.sortBy,
-          this.sortDesc
+          state.currentPage,
+          state.sortBy,
+          state.sortDesc
         );
-        this.isLoading = false;
+        state.isLoading = false;
         return newItems;
       } catch (error) {
-        this.isError = true;
-        this.isLoading = false;
+        state.isError = true;
+        state.isLoading = false;
         console.error(error);
         return [];
       }
-    },
-    async onScroll(event: Event) {
+    }
+
+    async function onScroll(event: Event) {
       if (
         (event.target as HTMLElement).scrollTop +
           (event.target as HTMLElement).clientHeight >=
         (event.target as HTMLElement).scrollHeight
       ) {
-        if (!this.isLoading) {
-          if (this.items.length === this.totalItems) return;
-          this.currentPage = this.currentPage + 1;
-          const newItems = await this.getData();
-          this.items = this.items.concat(newItems);
+        if (!state.isLoading) {
+          if (state.items.length === state.totalItems) return;
+          state.currentPage = state.currentPage + 1;
+          const newItems = await getData();
+          state.items = state.items.concat(newItems);
         }
       }
-    },
-    async onSort({ sortBy, sortDesc }: { sortBy: string; sortDesc: boolean }) {
-      console.log('onSort');
-      this.sortBy = sortBy;
-      this.sortDesc = sortDesc;
-      this.currentPage = 0;
-      this.items = await this.getData();
-      if (this.tableScrollBody) {
-        this.tableScrollBody.scrollTo(0, 0);
+    }
+
+    async function onSort({
+      sortBy,
+      sortDesc
+    }: {
+      sortBy: string;
+      sortDesc: boolean;
+    }) {
+      state.sortBy = sortBy;
+      state.sortDesc = sortDesc;
+      state.currentPage = 0;
+      state.items = await getData();
+      if (table) {
+        table.value?.$el.scrollTo(0, 0);
       }
     }
+
+    return { state, table, onSort };
   }
 });
 </script>
