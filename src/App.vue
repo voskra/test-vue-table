@@ -1,17 +1,17 @@
 <template>
   <div id="app">
-    <BlocsTable />
+    <BlocksTable />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import BlocsTable from './components/BlocsTable.vue';
+import BlocksTable from './components/BlocksTable.vue';
 
 export default defineComponent({
   name: 'App',
   components: {
-    BlocsTable
+    BlocksTable
   }
 });
 </script>

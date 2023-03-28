@@ -1,42 +1,55 @@
 <template>
-  <div class="position-relative">
-    <b-table
-      ref="table"
-      id="table-id"
-      :items="state.items"
-      :fields="state.fields"
-      :sort-by.sync="state.sortBy"
-      :sort-desc.sync="state.sortDesc"
-      :empty-text="
-        state.isLoading
-          ? 'Loading...'
-          : state.isError
-          ? 'There is error from backend!'
-          : 'There are no records to show'
-      "
-      @sort-changed="onSort"
-      no-local-sorting
-      sticky-header
-      responsive
-      bordered
-      no-border-collapse
-      show-empty
-      primary-key="id"
-      head-variant="dark"
-    >
-      <template #empty="scope">
-        <div class="text-center">
-          <strong>{{ scope.emptyText }}</strong>
-        </div>
-      </template>
-    </b-table>
-    <b-overlay :show="state.isLoading" no-wrap opacity="0.5"></b-overlay>
+  <div class="page-container">
+    <div class="position-relative">
+      <b-table
+        ref="table"
+        id="table-id"
+        :items="state.items"
+        :fields="state.fields"
+        :sort-by.sync="state.sortBy"
+        :sort-desc.sync="state.sortDesc"
+        :empty-text="
+          state.isLoading
+            ? 'Loading...'
+            : state.isError
+            ? 'There is error from backend!'
+            : 'There are no records to show'
+        "
+        @sort-changed="onSort"
+        no-local-sorting
+        sticky-header
+        responsive
+        bordered
+        no-border-collapse
+        show-empty
+        primary-key="id"
+        head-variant="dark"
+      >
+        <template #empty="scope">
+          <div class="text-center">
+            <strong>{{ scope.emptyText }}</strong>
+          </div>
+        </template>
+      </b-table>
+      <b-overlay :show="state.isLoading" no-wrap opacity="0.5"></b-overlay>
+    </div>
+    <b-alert :show="!!state.newItemsCount" variant="info" fade
+      >Have new {{ state.newItemsCount }} block{{
+        state.newItemsCount > 1 ? 's' : ''
+      }}. Update Table?
+      <b-button class="ml-1" @click="updateData" variant="info" size="sm">
+        Update
+      </b-button>
+      <b-button class="ml-1" @click="updateDataOnce" variant="info" size="sm">
+        Update and never ask
+      </b-button>
+    </b-alert>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { getBlocs, getBlocsCount } from '@/api';
+import { getBlocks, getBlocksCount } from '@/api';
 import { proposerFormatter, throttle, timeFormatter } from '@/utils';
 
 const fields = [
@@ -53,7 +66,7 @@ const fields = [
   { key: 'fees', sortable: true }
 ];
 
-interface BlocsTableData {
+interface BlocksTableData {
   sortBy: string;
   sortDesc: boolean;
   currentPage: number;
@@ -62,12 +75,13 @@ interface BlocsTableData {
   totalItems: number;
   isLoading: boolean;
   isError: boolean;
+  newItemsCount: number;
 }
 
 export default defineComponent({
-  name: 'BlocsTable',
+  name: 'BlocksTable',
   setup() {
-    const state = reactive<BlocsTableData>({
+    const state = reactive<BlocksTableData>({
       sortBy: 'level',
       sortDesc: false,
       currentPage: 0,
@@ -75,13 +89,15 @@ export default defineComponent({
       items: [],
       totalItems: 0,
       isLoading: true,
-      isError: false
+      isError: false,
+      newItemsCount: 0
     });
     const table = ref();
+    const interval = ref();
 
     onMounted(async () => {
       const [totalItems, items] = await Promise.all([
-        getBlocsCount(),
+        getBlocksCount(),
         getData()
       ]);
       state.totalItems = totalItems;
@@ -89,20 +105,40 @@ export default defineComponent({
       if (table) {
         table.value?.$el.addEventListener('scroll', throttledScroll);
       }
+      interval.value = setInterval(updateBlocksCount, 8000);
     });
 
     onUnmounted(() => {
       table.value?.$el.removeEventListener(throttledScroll);
+      if (interval.value) {
+        clearInterval(interval.value);
+      }
     });
 
     const throttledScroll = throttle(onScroll, 250);
+
+    async function updateBlocksCount() {
+      const newCount = await getBlocksCount();
+      state.newItemsCount = newCount - state.totalItems;
+    }
+
+    async function updateData() {
+      state.items = await getData();
+      state.totalItems = state.totalItems + state.newItemsCount;
+      state.newItemsCount = 0;
+    }
+
+    async function updateDataOnce() {
+      await updateData();
+      clearInterval(interval.value);
+    }
 
     async function getData() {
       try {
         state.isLoading = true;
         state.isError = false;
         const select = fields.map((field) => field.key);
-        const newItems = await getBlocs(
+        const newItems = await getBlocks(
           select,
           state.currentPage,
           state.sortBy,
@@ -149,21 +185,30 @@ export default defineComponent({
       }
     }
 
-    return { state, table, onSort };
+    return { state, table, onSort, updateData, updateDataOnce };
   }
 });
 </script>
 
 <style lang="scss">
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .position-relative {
-  min-height: 100%;
+  overflow: auto;
 }
 
 .b-table-sticky-header {
-  max-height: 100vh !important;
+  max-height: 100% !important;
 
   table.table.b-table > thead > tr > th {
     position: sticky !important;
   }
+}
+.alert {
+  margin: 0 !important;
 }
 </style>

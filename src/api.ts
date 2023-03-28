@@ -1,4 +1,4 @@
-export const getBlocsCount = async () => {
+export const getBlocksCount = async () => {
   try {
     const response = await fetch(
       `https://api.mumbainet.tzkt.io/v1/blocks/count`
@@ -9,14 +9,14 @@ export const getBlocsCount = async () => {
     }
 
     const data = await response.json();
-    console.log(`Blocs count is ${data}`);
+    console.log(`Blocks count is ${data}`);
     return data;
   } catch (e) {
     console.error(e);
   }
 };
 
-export const getBlocs = async (
+export const getBlocks = async (
   select: string[] = [],
   page?: number,
   sortBy?: string,
