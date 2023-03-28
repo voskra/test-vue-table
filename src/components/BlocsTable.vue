@@ -35,7 +35,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, reactive, ref } from 'vue';
+import { defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { getBlocs, getBlocsCount } from '@/api';
 import { proposerFormatter, throttle, timeFormatter } from '@/utils';
 
@@ -87,9 +87,15 @@ export default defineComponent({
       state.totalItems = totalItems;
       state.items = items;
       if (table) {
-        table.value?.$el.addEventListener('scroll', throttle(onScroll, 250));
+        table.value?.$el.addEventListener('scroll', throttledScroll);
       }
     });
+
+    onUnmounted(() => {
+      table.value?.$el.removeEventListener(throttledScroll);
+    });
+
+    const throttledScroll = throttle(onScroll, 250);
 
     async function getData() {
       try {
