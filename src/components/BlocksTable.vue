@@ -134,12 +134,7 @@ export default defineComponent({
     );
 
     onMounted(async () => {
-      const [totalItems, items] = await Promise.all([
-        getBlocksCount(),
-        getData.value()
-      ]);
-      state.totalItems = totalItems;
-      state.items = items;
+      state.totalItems = await getBlocksCount();
       if (table) {
         table.value?.$el.addEventListener('scroll', throttledScroll);
       }
