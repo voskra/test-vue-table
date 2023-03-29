@@ -1,5 +1,7 @@
 # test-vue-table
 
+[DEMO](https://test-vue-table.herokuapp.com/)
+
 ## Project setup
 
 ```
