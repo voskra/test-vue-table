@@ -1,8 +1,8 @@
+const blocksUrl = 'https://api.mumbainet.tzkt.io/v1/blocks';
+
 export const getBlocksCount = async () => {
   try {
-    const response = await fetch(
-      `https://api.mumbainet.tzkt.io/v1/blocks/count`
-    );
+    const response = await fetch(`${blocksUrl}/count`);
 
     if (response.status !== 200) {
       throw new Error(`Invalid reponse from backend! HTTP code is not 200.`);
@@ -33,9 +33,7 @@ export const getBlocks = async (
     paramsArray.push(`sort${sortDesc ? '.desc' : ''}=${sortBy}`);
   }
   const params = paramsArray.length ? `?${paramsArray.join('&')}` : '';
-  const response = await fetch(
-    `https://api.mumbainet.tzkt.io/v1/blocks${params}`
-  );
+  const response = await fetch(`${blocksUrl}${params}`);
 
   if (response.status !== 200) {
     throw new Error(`Invalid reponse from backend! HTTP code is not 200.`);
