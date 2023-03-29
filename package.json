@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "vue-cli-service serve",
+    "dev": "vue-cli-service serve",
+    "prestart": "yarn build",
+    "start": "node server.js",
     "build": "vue-cli-service build",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint"
@@ -15,9 +17,11 @@
     "bootstrap-vue": "^2.17.3",
     "core-js": "^3.8.3",
     "date-fns": "^2.29.3",
+    "express": "^4.18.2",
     "mutationobserver-shim": "^0.3.7",
     "popper.js": "^1.16.1",
     "portal-vue": "^2.1.7",
+    "serve-static": "^1.15.0",
     "vue": "^3.1.0"
   },
   "devDependencies": {
